@@ -1,11 +1,10 @@
 // ==UserScript==  
-// @name         Copy Header with URL (Silent Notification)  
-// @namespace    http://tampermonkey.net/  
-// @version      0.5  
+// @name         Copy Header with URL
+// @namespace    https://github.com/PavelSafronov/mongodb-tools
+// @version      0.6
 // @description  Add a copy button next to headers to copy their text along with the page's URL as a link (with anchor support and silent notifications).  
-// @author       Your Name  
+// @author       Pavel Safronov
 // @match        *://*/*  
-// @grant        GM_setClipboard  
 // ==/UserScript==  
 /*  
  * Final Notes and Documentation:  
@@ -15,9 +14,8 @@
  *    - Notifications appear in the bottom-right corner with a subtle fade-out animation.  
  *   
  * 2. Clipboard Copy Behavior:  
- *    - The `GM_setClipboard` API is used to programmatically copy formatted HTML content to the clipboard.  
+ *    - The `navigator.clipboard.write` API is used to programmatically copy formatted HTML+text content to the clipboard.  
  *    - The copied content dynamically includes an anchor (`#id`) if the header element has an `id` attribute, otherwise defaults to the page URL.  
- *    - The `GM_setClipboard` API was chosen because it supports copying rich-text formats like HTML.  
  *   
  * 3. Design Choices for Copy Icon:  
  *    - The copy button (`⧉`) was selected for minimalism and to blend with site designs. It uses inherited header styles for seamless integration.  
@@ -31,17 +29,13 @@
  *    - Accessibility: The `⧉` icon itself is clickable, but it does not have an associated `aria-label` or `title` for screen readers. Adding these attributes may improve accessibility.  
  *    - CSS Styling: The notification style and the icon position could use customization for certain websites with conflicting designs.  
  *    - Handling Spaces: If headers contain excessive white space or formatting artifacts, additional cleanup logic can be added to extract cleaner text.  
- *    - Browser Compatibility: The script relies on `GM_setClipboard`, which may not be supported in all browsers or userscripts engines. Future versions may consider using a fallback mechanism, such as using the native clipboard API (`navigator.clipboard`).  
  *    - Icon Customization: For more prominent visibility, a customizable icon image or text could be supported via runtime configuration.  
- *   
- * 6. Why Use Tampermonkey:  
- *    - Tampermonkey supports advanced grants like clipboard access (`GM_setClipboard`) and DOM manipulation, making it ideal for this script's requirements. Future browser restrictions could impact such functionality, so migration to browser extensions might be needed.  
  */
 (function () {
     'use strict';
 
     // Function to copy the header text and URL to the clipboard  
-    function copyHeader(headerElement, pageURL) {
+    async function copyHeader(headerElement, pageURL) {
         // Extract only the plain header text (excluding the "copy" button)  
         const headerText = headerElement.cloneNode(true); // Clone the header element  
         Array.from(headerText.querySelectorAll('.copy-icon')).forEach(icon => icon.remove()); // Remove the "copy" button  
@@ -51,14 +45,26 @@
         const headerId = headerElement.id ? `#${headerElement.id}` : '';
         const fullURL = pageURL + headerId;
 
-        // Create the clickable hyperlink in HTML format  
-        const htmlLink = `<a href="${fullURL}">${plainText}</a>`;
+        // Create both plain text and HTML content for the clipboard  
+        const mdContent = `[${plainText}](${fullURL})`; // Plain text format  
+        const htmlContent = `<a href="${fullURL}">${plainText}</a>`; // Clickable hyperlink (HTML format)  
 
-        // Copy the HTML link to the clipboard  
-        GM_setClipboard(htmlLink, { type: 'html' });
-
-        // Show silent notification without triggering the browser beep  
-        showSilentNotification('Copied successfully!');
+        try {
+            // Copy the HTML link to the clipboard  
+            // Use navigator.clipboard API to write both formats to the clipboard  
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([mdContent], { type: 'text/plain' }),
+                    'text/html': new Blob([htmlContent], { type: 'text/html' }),
+                })
+            ]);
+            // Show silent notification if successfully written  
+            showSilentNotification('Copied successfully!');
+        } catch (err) {
+            // Handle errors gracefully if clipboard write fails  
+            console.error('Clipboard error:', err);
+            showSilentNotification('Failed to copy!');
+        }
     }
 
     // Function to add the "copy" button next to headers  
