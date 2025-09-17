@@ -4,4 +4,4 @@ This is a userscript that was written with the help of MongoGPT. The script adds
 
 ## Installation
 
-TBD
+Navigate here: <a href="https://github.com/PavelSafronov/mongodb-tools/raw/refs/heads/main/script.user.js">https://github.com/PavelSafronov/mongodb-tools/raw/refs/heads/main/script.user.js</a>
